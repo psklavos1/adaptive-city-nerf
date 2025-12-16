@@ -19,6 +19,7 @@ tensorboard
 viser
 rich
 matplotlib
+pymap3d
 
 # Step 1: 
 # conda create -n nerf-env python=3.11 -y

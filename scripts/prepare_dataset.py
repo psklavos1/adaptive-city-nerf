@@ -89,12 +89,6 @@ Normalization (origin & scale)
 - If your renderer needs metric space, restore with:
   `t_metric = origin_drb + pose_scale_factor * t_drb`.
 
-Compatibility note (Mega-NeRF & friends)
-----------------------------------------
-- Many pipelines generate camera rays in **RUB** and expect world coords in **DRB**.
-- Our metadata is written to align with that expectation exactly, so you can plug
-  it in without extra frame conversions.
-
 Expected input layout
 ---------------------
 data_path/
