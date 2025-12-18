@@ -17,7 +17,7 @@ def meta_trainer(
     logger,
 ):
     """
-    Main meta-training loop for gradient-based meta-learning.
+    Offline Stage Trainr. Organizes main meta-training loop for gradient-based meta-learning.
     """
     metric_logger = MetricLogger(delimiter="  ")
     scheduler = get_scheduler(P, optimizer)

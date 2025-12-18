@@ -7,7 +7,7 @@ from torch.amp import autocast
 from utils import psnr
 from common.utils import to_device_tree
 from nerfs.losses import compute_loss
-from nerfs.meta_learning import (
+from .meta_core import (
     task_adapt,
     meta_update,
 )
@@ -15,7 +15,7 @@ from nerfs.meta_learning import (
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def train_step_ray(
+def train_step(
     P,
     step,
     model,
@@ -27,7 +27,7 @@ def train_step_ray(
     grad_scaler=None,
 ):
     """
-    Online-continual meta-training over a sequence of tasks grouped by region (cid).
+    Offline Stage: meta-training step over a sequence of tasks grouped by region (cid).
 
     This function runs inner-loop adaptation on support rays, evaluates the adapted
     parameters on query rays, aggregates losses at region level, and applies the

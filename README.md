@@ -20,17 +20,19 @@ We present a city-scale adaptive Neural Radiance Field (NeRF) framework designed
 
 ```text
 .
-├── common/                 # common utilities
-├── configs/                # Experiment and training configurations
-├── data/                   # Data storage and related modules
-├── models/                 # Instant-NGP experts and container NeRF
-├── train/                  # Offline meta-learning and online adaptation
-├── evals/                  # Online adaptation and evaluation components
-├── viewer/                 # Viewer and real-time visualization tools
-├── nerfs/                  # Nerf related helpers
-├── scripts/                # Training, evaluation, and utility scripts
-├── requirements.txt
-└── README.md
+├── common/                     # Shared utilities (logging, helpers)
+├── configs/                    # Demo configuration files
+├── data/                       # Dataset storage and parsing
+├── logs/                       # Execution Outputs, logs, and checkpoints 
+├── models/                     # NeRF models and architectures
+├── nerfs/                      # NeRF-specific helpers
+├── pipelines/                  # Meta-training and runtime adaptation pipelines
+├── scripts/                    # Internal execution scripts for data preparation or logging statistics
+├── viewer/                     # Interactive NeRF viewer
+├── nerf_runner.py              # Entry point for executing NeRF operations
+├── utils.py                    # Entry point utilities
+├── requirements.txt            # Python dependencies
+└── README.md                   # Repo documentation
 ```
 
 ---
@@ -108,7 +110,7 @@ data_path/
 ```
 ---
 
-### Configuration
+## Configuration
 Experiments can be configured either via **command-line arguments** or by
 providing a **JSON configuration file**.
 
@@ -190,20 +192,22 @@ After downloading, extract into: `logs/example/`
 
 ---
 
-## Citation
+## Citation & License
 
 If you use this framework in your research, please cite our paper:
 
 ```bibtex
 @inproceedings{sklavos2026adaptivenerf,
   title     = {An Adaptive NeRF Framework for City-Scale Emergency Awareness},
-  author    = {Sklavos, Panagiotis and Anestis, Georgios and Deligiannakis, Antonios},
+  author    = {Panagiotis Sklavos and Georgios Anestis and Antonios Deligiannakis},
   booktitle = {Proceedings of the 14th International Conference on Emerging Internet, Data \& Web Technologies (EIDWT 2026)},
   year      = {2026},
   note      = {Accepted for publication}
 }
 ```
 > **Note**: The citation will be updated upon publication.
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
 ## Acknowledgments

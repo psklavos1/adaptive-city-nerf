@@ -15,7 +15,7 @@ from data.image_metadata import ImageMetaDataset, ImageMetadata
 from data.dataset import get_image_metadata
 from data.infinite_loader import InfiniteDataLoader
 from data.ram_rays_dataset import RamRaysDataset
-from nerfs.meta_learning import runtime_adapt_inplace as runtime_adapt
+from pipelines.online_stage.runtime_adapt import runtime_adapt
 
 
 class RuntimeAdaptRunner(BaseRunner):
@@ -54,10 +54,12 @@ class RuntimeAdaptRunner(BaseRunner):
 
         # Adaptation state
         self.orig_state: Optional[Dict[str, torch.Tensor]] = None
-        # optimizer     
-        self.orig_state = deepcopy(self.model.state_dict()) 
+        # optimizer
+        self.orig_state = deepcopy(self.model.state_dict())
         self.optimizer = get_optimizer(self.P, self.model)
-        self.scaler = torch.cuda.amp.GradScaler(enabled=bool(getattr(self.P, "use_amp", False)))
+        self.scaler = torch.cuda.amp.GradScaler(
+            enabled=bool(getattr(self.P, "use_amp", False))
+        )
 
         self.k_steps: int = 0
 
@@ -106,7 +108,6 @@ class RuntimeAdaptRunner(BaseRunner):
         self._support_loader = None
         self._support_iter = None
 
-
         # Persistent progress bar
         if self._pbar is None:
             self._pbar = tqdm(
@@ -117,10 +118,12 @@ class RuntimeAdaptRunner(BaseRunner):
                 smoothing=0.1,
                 desc="Runtime-Adapt",
                 bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",
-                file=sys.stdout,  
+                file=sys.stdout,
             )
 
-        self.log(f"Runtime-Adapt ready (resume={'yes' if self.fast is not None else 'no'})")
+        self.log(
+            f"Runtime-Adapt ready (resume={'yes' if self.fast is not None else 'no'})"
+        )
 
     def stop(self):
         """Close resources."""
@@ -139,7 +142,7 @@ class RuntimeAdaptRunner(BaseRunner):
             self.start()
 
         rays, rgbs = self._next_support_batch()
-        
+
         metrics = runtime_adapt(
             P=self.P,
             model=self.model,
@@ -158,7 +161,9 @@ class RuntimeAdaptRunner(BaseRunner):
         # tqdm live update
         if self._pbar is not None:
             self._pbar.update(1)
-            self._pbar.set_postfix({"loss": f"{loss_val:.6f}", "psnr": f"{psnr_val:.2f}"})
+            self._pbar.set_postfix(
+                {"loss": f"{loss_val:.6f}", "psnr": f"{psnr_val:.2f}"}
+            )
 
         # viewer log summary
         self.log(
@@ -184,9 +189,9 @@ class RuntimeAdaptRunner(BaseRunner):
                 f"No metadata found for eval set in: {data_dir}. "
                 "Expected <data_dir>/metadata (flat) or <data_dir>/(val|test)/metadata."
             )
-        
+
         print("batch_size", self.test_batch_size)
-        
+
         meta_ds = ImageMetaDataset(eval_list)
         self._meta_loader = DataLoader(
             meta_ds,
@@ -210,7 +215,9 @@ class RuntimeAdaptRunner(BaseRunner):
                 ),
             },
         )
-        num_support = int(getattr(self.P, "support_rays", getattr(self.P, "support_batch", 4096)))
+        num_support = int(
+            getattr(self.P, "support_rays", getattr(self.P, "support_batch", 4096))
+        )
         return DataLoader(
             rays_ds,
             batch_size=num_support,

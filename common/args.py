@@ -161,15 +161,34 @@ def build_parser():
     parser.add_argument("--log_date", action="store_true")
     parser.add_argument("--fname", default=None)
     parser.add_argument("--checkpoint_path", type=str, default=None)
-    parser.add_argument("--use_stored_args", action="store_true")
     parser.add_argument("--prefix", type=str, default="best")  # best/last/step{i}
     parser.add_argument("--no_strict", action="store_true")
 
     return parser
 
 
+ARCH_KEYS = {
+    # model
+    "num_submodules",
+    "nerf_variant",
+    "num_layers",
+    "sigma_depth",
+    "color_depth",
+    "dim_hidden",
+    "color_hidden",
+    # encodings / bg
+    "max_res",
+    "log2_hashmap_size",
+    "xyz_encoding",
+    "dir_encoding",
+    "no_bg_nerf",
+    "bg_hidden",
+    "bg_encoding",
+}
+
+
 def _cli_provided_dests(parser: argparse.ArgumentParser, argv):
-    """Return set of 'dest' names explicitly provided on CLI."""
+    """Return set of argparse dest names explicitly present on CLI."""
     opt_to_action = {}
     for action in parser._actions:
         for opt in action.option_strings:
@@ -178,45 +197,59 @@ def _cli_provided_dests(parser: argparse.ArgumentParser, argv):
     provided = set()
     i = 0
     while i < len(argv):
-        tok = argv[i]
-        act = opt_to_action.get(tok)
+        act = opt_to_action.get(argv[i])
         if act is not None:
             provided.add(act.dest)
         i += 1
     return provided
 
 
-def load_cfg_with_priority(config_path, parser, args, argv):
-    """
-    Merge a saved config (.P) into args with priority:
-    parser defaults < loaded config < explicit CLI
-    """
-    cli_dests = _cli_provided_dests(parser, argv)
+def load_checkpoint_cfg(cfg_path: str):
+    cfg_obj = torch.load(cfg_path, map_location="cpu", weights_only=False)
+    return vars(cfg_obj) if hasattr(cfg_obj, "__dict__") else dict(cfg_obj)
 
-    cfg_obj = torch.load(config_path, map_location="cpu", weights_only=False)
-    cfg = vars(cfg_obj) if hasattr(cfg_obj, "__dict__") else dict(cfg_obj)
 
-    for k, v in cfg.items():
-        if k not in cli_dests:
-            setattr(args, k, v)
+def _enforce_arch_from_ckpt(args, ckpt_cfg: dict):
+    """Force architecture-defining args from checkpoint config."""
+    for k in ARCH_KEYS:
+        if k in ckpt_cfg and hasattr(args, k):
+            setattr(args, k, ckpt_cfg[k])
     return args
 
 
 def parse_args():
     """
-    Parse CLI args and merge them with checkpoint/external configs; priority is:
-    defaults < checkpoint < external config < explicit CLI.
+    Priority:
+      defaults < checkpoint < json(if not on CLI) < CLI
+    Exception:
+      if checkpoint exists, ARCH_KEYS are always forced from checkpoint.
     """
     parser = build_parser()
     argv = sys.argv[1:]
     args = parser.parse_args(argv)
 
+    if args.checkpoint_path == "":
+        args.checkpoint_path = None
+
     cli_dests = _cli_provided_dests(parser, argv)
 
-    if args.checkpoint_path and args.use_stored_args:
+    ckpt_cfg = None
+    if args.checkpoint_path:
         cfg_path = os.path.join(args.checkpoint_path, f"{args.prefix}.P")
         if os.path.exists(cfg_path):
-            args = load_cfg_with_priority(cfg_path, parser, args, argv)
+            ckpt_cfg = load_checkpoint_cfg(cfg_path)
+
+            # Force architecture from checkpoint (ignores CLI/JSON).
+            _enforce_arch_from_ckpt(args, ckpt_cfg)
+
+            # Non-arch: apply checkpoint only if not explicitly provided on CLI.
+            for k, v in ckpt_cfg.items():
+                if k in ARCH_KEYS:
+                    continue
+                if k in cli_dests:
+                    continue
+                if hasattr(args, k):
+                    setattr(args, k, v)
 
     config_path = getattr(args, "configPath", None)
     if config_path is not None:
@@ -232,13 +265,13 @@ def parse_args():
                 continue
             setattr(args, k, v)
 
-    if args.checkpoint_path == "":
-        args.checkpoint_path = None
+    # Re-force arch after JSON merge if checkpoint is present.
+    if ckpt_cfg is not None:
+        _enforce_arch_from_ckpt(args, ckpt_cfg)
 
     if args.fname is None:
         from datetime import datetime
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        args.fname = f"{args.op}_{timestamp}"
+        args.fname = f"{args.op}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
     return args
