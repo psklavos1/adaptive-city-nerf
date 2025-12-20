@@ -41,13 +41,13 @@ We present a city-scale adaptive Neural Radiance Field (NeRF) framework designed
 To get started, clone the repository, create a Conda environment, and install the required dependencies.
 Python 3.11 and CUDA 11.8 are verified for compatibility.
 
-### 1. Clone the repository
+#### 1. Clone the repository
 ```bash
 git clone https://github.com/psklavos1/adaptive-city-nerf.git
 cd adaptive-city-nerf
 ```
 
-### 2) Create the environmet.
+#### 2) Create the environmet.
 We provide an example setup using conda.
 Install the correct version of PyTorch and dependencies:
 ```bash
@@ -57,7 +57,7 @@ conda install -y pytorch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 pytorch-cu
 pip install -r requirements.txt
 ```
 
-### 3) Install tiny-cuda-nn.
+#### 3) Install tiny-cuda-nn.
 Efficient Instant-NGP primitives require `tiny-cuda-nn`.
 
 Make sure CUDA is compatible:
@@ -96,14 +96,14 @@ data_path/
   ├── model/    # COLMAP sparse model (cameras.bin, images.bin, points3D.bin)
   └── images/   # All registered images used by the COLMAP model
 ```
-### Example Usage
+### Example
 ```bash
 ./scripts/prepare_dataset.py --data_path data/drz --output_path data/drz/out/prepared --val_split 0.3 --scale_strategy camera_max --ecef_to_enu --enu_ref median
 ```
 
 - `scripts/create_clusters.py` generates spatial training partitions for NeRF experts using Voronoi-distance routing. For each image, it assigns rays to one or more centroids (optionally with boundary overlap) and writes per-cluster mask files that define which rays/images each expert trains on. 2D Clustering is strongly recommended as it reduces computation with no significant side-effects.
 
-### Example Usage
+### Example
 
 ```bash
  ./scripts/create_clusters.py --data_path data/drz/out/prepared --grid_dim 2 2 --cluster_2d --boundary_margin 1.05 --ray_samples 256 --center_pixels --scene_scale 1.1 --output g22_grid_bm105_ss11 --resume
@@ -139,7 +139,7 @@ and modify only the parameters of interest.
 
 ---
 ## Usage
-The repo support meta-training a model on an offline dataset,evaluating a meta-trained model to streamed incoming views and finally a viewer for rendering the model and or monitoring live adaptation.
+The repo supports meta-training a model on an offline dataset, evaluating a meta-trained model to streamed incoming views and finally a viewer for rendering the model and or monitoring live adaptation.
 
 ### 1) Offline Meta-Learning
 In the offline phase, we perform meta-learning on the dataset, training the region-specific NeRF experts to learn a good parameter initialization.
@@ -149,9 +149,9 @@ Run the **offline meta-learning**:
 python nerf_runner.py --op train --configPath configs/train.json
 ```
 
-### 2) Online Runtime-Adaptation
+### 2) Runtime Evaluation
 
-In the online phase, we perform runtime adaptation on newly acquired views and evaluate model performance using **PSNR**, **SSIM**, and **LPIPS** after a specified number of **Test-Time Optimization (TTO)** steps. Incoming views are also rendered for visual comparison with ground truth images. All results are stored under `logs/<experiment_name>/`.
+In the online phase, we perform runtime adaptation on newly acquired views. To evaluate adaptation quality we compute metrics, such as **PSNR**, **SSIM**, and **LPIPS** after a specified number of **Test-Time Optimization (TTO)** steps. Incoming views are also rendered for visual comparison with ground truth images. All results are stored under `logs/<experiment_name>/`.
 
 #### Required workflow (must be followed in this order)
 
@@ -167,10 +167,14 @@ In the online phase, we perform runtime adaptation on newly acquired views and e
    ./scripts/update_dataset.py --update_model_path <colmap_model_dir> --image_path <images_dir> --prepared_dir <prepared_dir> --batch_tag <batch_name>
    ```
    New data are written under `<prepared_dir>/continual/<batch_tag>/`
-3.  Run **runtime adaptation**
+3.  Run **Evaluation**
     ```bash
     python nerf_runner.py --op eval --checkpoint_path logs/example --prefix step20000 --use_stored_args --tto 128
     ```
+   > **Important**: The above execution is intended for evaluating model performance
+    using reconstruction metrics. For practical runtime adaptation monitoring that
+    reflects realistic application scenarios, the viewer should be used instead, as
+    it enables direct NeRF rendering and interactive inspection.
 
 ### 3) Viewer
 The framework includes an interactive viewer built using [`nerfview`](https://github.com/nerfstudio-project/nerfview). The users can toggle between navigating a static scene and performing live visualization during runtime-adaptation. Also can perform submodule isolation to monitor modularization.
@@ -179,6 +183,9 @@ Run the **viewer** with:
 ```bash
 python nerf_runner.py --op view --checkpoint_path logs/example --prefix step20000
 ```
+
+To monitor NeRF rendering the web-based viewer a link is provided at the console for users to follow. 
+
 > **Note:** Live adaptation on viewer may reduce throughput due to shared GPU usage. 
 
 ---
@@ -188,7 +195,7 @@ The demo data for the experiments are organized in `data/drz/out/example` for ra
 
 The model checkpoint with 4 experts used in the paper: [`checkpoint`](https://github.com/psklavos1/adaptive-city-nerf/releases/tag/v1.0/4_experts.zip)
 
-After downloading, extract into: `logs/example/`
+After downloading, extract into: `logs/example`
 
 ---
 
